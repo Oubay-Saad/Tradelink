@@ -1,0 +1,114 @@
+import 'dart:typed_data';
+import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
+import '../models/user.dart';
+import '../services/api_service.dart';
+
+class AuthProvider with ChangeNotifier {
+  final ApiService _apiService = ApiService();
+  
+  User? _currentUser;
+  bool _isLoading = false;
+  String? _error;
+
+  User? get currentUser => _currentUser;
+  bool get isLoading => _isLoading;
+  String? get error => _error;
+  bool get isAuthenticated => _apiService.token != null;
+
+  Future<void> init() async {
+    _isLoading = true;
+    notifyListeners();
+    await _apiService.init();
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<bool> login(String phone, String password) async {
+    try {
+      _setLoading(true);
+      final data = await _apiService.login(phone, password);
+      _currentUser = User.fromJson(data['user']);
+      _setLoading(false);
+      return true;
+    } catch (e) {
+      _setError(e.toString());
+      return false;
+    }
+  }
+
+  Future<bool> register({
+    required String name,
+    required String phone,
+    required String email,
+    required String role,
+    required String password,
+  }) async {
+    try {
+      _setLoading(true);
+      await _apiService.register(name: name, phone: phone, email: email, role: role, password: password);
+      _setLoading(false);
+      return true;
+    } catch (e) {
+      _setError(e.toString());
+      return false;
+    }
+  }
+
+  Future<void> logout() async {
+    await _apiService.logout();
+    _currentUser = null;
+    notifyListeners();
+  }
+  
+  Future<bool> updateProfile({
+    String? name,
+    String? bio,
+    String? location,
+    List<String>? skills,
+    int? experience,
+    Uint8List? profilePicBytes,
+    String? profilePicName,
+  }) async {
+    try {
+      _setLoading(true);
+      final formData = FormData();
+      if (name != null) formData.fields.add(MapEntry('name', name));
+      if (bio != null) formData.fields.add(MapEntry('bio', bio));
+      if (location != null) formData.fields.add(MapEntry('location', location));
+      if (experience != null) formData.fields.add(MapEntry('experience', experience.toString()));
+      
+      if (skills != null) {
+        for (var skill in skills) {
+          formData.fields.add(MapEntry('skills', skill));
+        }
+      }
+
+      if (profilePicBytes != null) {
+        formData.files.add(MapEntry(
+          'profilePic',
+          MultipartFile.fromBytes(profilePicBytes, filename: profilePicName ?? 'profile.jpg'),
+        ));
+      }
+
+      _currentUser = await _apiService.updateMe(formData);
+      _setLoading(false);
+      return true;
+    } catch (e) {
+      _setError(e.toString());
+      return false;
+    }
+  }
+
+  void _setLoading(bool value) {
+    _isLoading = value;
+    _error = null;
+    notifyListeners();
+  }
+
+  void _setError(String msg) {
+    _error = msg;
+    _isLoading = false;
+    notifyListeners();
+  }
+}
