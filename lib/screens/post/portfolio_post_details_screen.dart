@@ -7,6 +7,8 @@ import '../../models/user.dart';
 import '../../services/api_service.dart';
 import '../profile/user_profile_screen.dart';
 
+import '../../utils/image_utils.dart';
+
 class PortfolioPostDetailsScreen extends StatefulWidget {
   final String postId;
 
@@ -140,28 +142,7 @@ class _PortfolioPostDetailsScreenState extends State<PortfolioPostDetailsScreen>
                           pic = creator['profilePic'];
                         }
 
-                        if (pic == null || pic.isEmpty) {
-                          return const CircleAvatar(radius: 24, child: Icon(Icons.person));
-                        }
-                        
-                        final isUrl = pic.startsWith('http');
-                        final isBase64 = pic.startsWith('data:image') || (!isUrl && pic.length > 50);
-                        
-                        if (isBase64 && !isUrl) {
-                          try {
-                            String b64 = pic;
-                            if (b64.contains(',')) b64 = b64.substring(b64.indexOf(',') + 1);
-                            b64 = b64.trim().replaceAll(RegExp(r'\s+'), '');
-                            while (b64.length % 4 != 0) b64 += '=';
-                            return CircleAvatar(
-                              radius: 24,
-                              backgroundImage: MemoryImage(base64Decode(b64)),
-                            );
-                          } catch (e) {
-                            return const CircleAvatar(radius: 24, child: Icon(Icons.person));
-                          }
-                        }
-                        return CircleAvatar(radius: 24, backgroundImage: NetworkImage(pic));
+                        return ImageUtils.buildCircleAvatar(imageUrl: pic, radius: 24);
                       }
                     ),
                   ),

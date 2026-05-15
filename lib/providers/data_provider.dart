@@ -49,11 +49,11 @@ class DataProvider with ChangeNotifier {
   List<ServiceItem> get myServices => _myServices;
   List<dynamic> get sentRequests => _sentRequests;
 
-  Future<void> fetchAllPosts() async {
+  Future<void> fetchAllPosts({String? name}) async {
     _isLoading = true;
     notifyListeners();
     try {
-      _posts = await _apiService.getAllPosts();
+      _posts = await _apiService.getAllPosts(name: name);
     } catch (e) {
       print("Error fetching posts: $e");
     }

@@ -17,12 +17,18 @@ class AllPostsScreen extends StatefulWidget {
 }
 
 class _AllPostsScreenState extends State<AllPostsScreen> {
+  final _searchController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<DataProvider>().fetchAllPosts();
     });
+  }
+
+  void _search() {
+    context.read<DataProvider>().fetchAllPosts(name: _searchController.text);
   }
 
   @override
@@ -32,14 +38,38 @@ class _AllPostsScreenState extends State<AllPostsScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Community Posts')),
-      body: dataProvider.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: () => context.read<DataProvider>().fetchAllPosts(),
-              child: dataProvider.posts.isEmpty
-                  ? const Center(child: Text('No posts yet.'))
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search posts by name...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    _searchController.clear();
+                    _search();
+                  },
+                ),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                filled: true,
+                fillColor: Colors.grey[100],
+              ),
+              onSubmitted: (_) => _search(),
+            ),
+          ),
+          Expanded(
+            child: dataProvider.isLoading && dataProvider.posts.isEmpty
+                ? const Center(child: CircularProgressIndicator())
+                : RefreshIndicator(
+                    onRefresh: () => context.read<DataProvider>().fetchAllPosts(name: _searchController.text),
+                    child: dataProvider.posts.isEmpty
+                        ? const Center(child: Text('No posts found.'))
+                        : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                       itemCount: dataProvider.posts.length,
                       itemBuilder: (context, index) {
                         final post = dataProvider.posts[index];
@@ -47,7 +77,7 @@ class _AllPostsScreenState extends State<AllPostsScreen> {
                           margin: const EdgeInsets.only(bottom: 24),
                           clipBehavior: Clip.antiAlias,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          elevation: 0,
+                          elevation: 1,
                           color: Colors.white,
                           child: InkWell(
                             onTap: () {
@@ -59,7 +89,7 @@ class _AllPostsScreenState extends State<AllPostsScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Padding(
-                                  padding: const EdgeInsets.all(16.0),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
                                   child: Row(
                                     children: [
                                       Builder(
@@ -73,34 +103,29 @@ class _AllPostsScreenState extends State<AllPostsScreen> {
                                           }
 
                                           if (pic == null || pic.isEmpty) {
-                                            return CircleAvatar(
-                                              radius: 16,
-                                              backgroundColor: const Color(0xFF2563EB).withValues(alpha: 0.1),
-                                              child: const Icon(Icons.person, size: 16, color: Color(0xFF2563EB)),
-                                            );
+                                            return const CircleAvatar(radius: 12, child: Icon(Icons.person, size: 14));
                                           }
                                           
                                           final isUrl = pic.startsWith('http');
                                           final isBase64 = pic.startsWith('data:image') || (!isUrl && pic.length > 50);
-                                          final isHtml = pic.trim().startsWith('<');
                                           
-                                          if (isBase64 && !isHtml && !isUrl) {
+                                          if (isBase64 && !isUrl) {
                                             try {
                                               String b64 = pic;
                                               if (b64.contains(',')) b64 = b64.substring(b64.indexOf(',') + 1);
                                               b64 = b64.trim().replaceAll(RegExp(r'\s+'), '');
                                               while (b64.length % 4 != 0) b64 += '=';
                                               return CircleAvatar(
-                                                radius: 16,
+                                                radius: 12,
                                                 backgroundImage: MemoryImage(base64Decode(b64)),
                                               );
                                             } catch (e) {
-                                              return const CircleAvatar(radius: 16, child: Icon(Icons.person, size: 16));
+                                              return const CircleAvatar(radius: 12, child: Icon(Icons.person, size: 14));
                                             }
                                           }
                                           
                                           return CircleAvatar(
-                                            radius: 16,
+                                            radius: 12,
                                             backgroundImage: NetworkImage(pic),
                                           );
                                         }
@@ -117,76 +142,94 @@ class _AllPostsScreenState extends State<AllPostsScreen> {
                                           }
                                           return Text(
                                             name,
-                                            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
+                                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                                           );
                                         },
                                       ),
                                     ],
                                   ),
                                 ),
-                                if (post.images.isNotEmpty)
-                                  Builder(
-                                    builder: (context) {
-                                      final imageUrl = post.images.first;
-                                      final isUrl = imageUrl.startsWith('http');
-                                      final isBase64 = imageUrl.startsWith('data:image') || (!isUrl && imageUrl.length > 50);
-                                      final isHtml = imageUrl.trim().startsWith('<');
-                                      
-                                      if (isBase64 && !isHtml && !isUrl) {
-                                        try {
-                                          String base64String = imageUrl;
-                                          if (base64String.contains(',')) {
-                                            base64String = base64String.substring(base64String.indexOf(',') + 1);
-                                          }
-                                          base64String = base64String.trim().replaceAll(RegExp(r'\s+'), '');
-                                          
-                                          while (base64String.length % 4 != 0) {
-                                            base64String += '=';
-                                          }
-
-                                          return Image.memory(
-                                            base64Decode(base64String),
-                                            height: 250,
-                                            width: double.infinity,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (_, __, ___) => Container(height: 250, color: Colors.grey[200], child: const Icon(Icons.broken_image)),
-                                          );
-                                        } catch (e) {
-                                          return Container(height: 250, color: Colors.grey[200], child: const Icon(Icons.broken_image));
-                                        }
-                                      }
-                                      
-                                      if (isHtml) return Container(height: 250, color: Colors.grey[200], child: const Icon(Icons.broken_image));
-                                      
-                                      return Image.network(
-                                        imageUrl,
-                                        height: 250,
-                                        width: double.infinity,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) => Container(height: 250, color: Colors.grey[200], child: const Icon(Icons.broken_image)),
-                                      );
-                                    }
-                                  ),
+                                // Text Content
                                 Padding(
-                                  padding: const EdgeInsets.all(16.0),
+                                  padding: const EdgeInsets.fromLTRB(12.0, 0, 12.0, 12.0),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(post.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                      Text(post.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                                       if (post.description != null && post.description!.isNotEmpty) ...[
-                                        const SizedBox(height: 8),
-                                        Text(post.description!, style: TextStyle(color: Colors.grey[800], height: 1.4)),
-                                      ]
+                                        const SizedBox(height: 4),
+                                        Text(post.description!, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                                      ],
                                     ],
                                   ),
-                                )
+                                ),
+                                // Image
+                                if (post.images.isNotEmpty)
+                                  AspectRatio(
+                                    aspectRatio: 1,
+                                    child: Stack(
+                                      children: [
+                                        Positioned.fill(
+                                          child: Builder(
+                                            builder: (context) {
+                                              final imageUrl = post.images.first;
+                                              final isUrl = imageUrl.startsWith('http');
+                                              final isBase64 = imageUrl.startsWith('data:image') || (!isUrl && imageUrl.length > 50);
+                                              
+                                              if (isBase64 && !isUrl) {
+                                                try {
+                                                  String base64String = imageUrl;
+                                                  if (base64String.contains(',')) {
+                                                    base64String = base64String.substring(base64String.indexOf(',') + 1);
+                                                  }
+                                                  base64String = base64String.trim().replaceAll(RegExp(r'\s+'), '');
+                                                  
+                                                  while (base64String.length % 4 != 0) {
+                                                    base64String += '=';
+                                                  }
+
+                                                  return Image.memory(
+                                                    base64Decode(base64String),
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder: (_, __, ___) => Container(color: Colors.grey[100], child: const Icon(Icons.broken_image)),
+                                                  );
+                                                } catch (e) {
+                                                  return Container(color: Colors.grey[100], child: const Icon(Icons.broken_image));
+                                                }
+                                              }
+                                              
+                                              return Image.network(
+                                                imageUrl,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (_, __, ___) => Container(color: Colors.grey[100], child: const Icon(Icons.broken_image)),
+                                              );
+                                            }
+                                          ),
+                                        ),
+                                        if (post.images.length > 1)
+                                          const Positioned(
+                                            top: 10,
+                                            right: 10,
+                                            child: Icon(
+                                              Icons.collections_rounded,
+                                              color: Colors.white,
+                                              size: 24,
+                                              shadows: [Shadow(color: Colors.black26, blurRadius: 4)],
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
                               ],
                             ),
-                          ),
-                        );
-                      },
-                    ),
-            ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ),
+      ],
+    ),
       floatingActionButton: isTradesman
           ? FloatingActionButton.extended(
               backgroundColor: const Color(0xFF2563EB),

@@ -130,8 +130,10 @@ class ApiService {
     await _dio.delete('/services/$id');
   }
 
-  Future<List<Post>> getAllPosts() async {
-    final res = await _dio.get('/posts');
+  Future<List<Post>> getAllPosts({String? name}) async {
+    final res = await _dio.get('/posts', queryParameters: {
+      if (name != null && name.isNotEmpty) 'name': name,
+    });
     return (res.data['posts'] as List).map((e) => Post.fromJson(e)).toList();
   }
 
@@ -174,6 +176,29 @@ class ApiService {
 
   Future<void> deleteRequest(String requestId) async {
     await _dio.delete('/requests/$requestId');
+  }
+
+  Future<Map<String, dynamic>> getReviews(String tradesmanId) async {
+    final res = await _dio.get('/review/$tradesmanId');
+    return res.data;
+  }
+
+  Future<void> createReview({required String tradesmanId, required int rating, required String comment}) async {
+    await _dio.post('/review/$tradesmanId', data: {
+      'rating': rating,
+      'comment': comment,
+    });
+  }
+
+  Future<void> updateReview({required String reviewId, required int rating, required String comment}) async {
+    await _dio.patch('/review/$reviewId', data: {
+      'rating': rating,
+      'comment': comment,
+    });
+  }
+
+  Future<void> deleteReview(String reviewId) async {
+    await _dio.delete('/review/$reviewId');
   }
 }
 

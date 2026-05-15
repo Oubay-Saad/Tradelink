@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
 
+import '../../utils/image_utils.dart';
+
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
 
@@ -134,17 +136,27 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               Center(
                 child: Stack(
                   children: [
-                    CircleAvatar(
-                      radius: 60,
-                      backgroundColor: Colors.grey[200],
-                      backgroundImage: _profilePicBytes != null 
-                        ? MemoryImage(_profilePicBytes!) 
-                        : (user?.profilePic != null && user!.profilePic!.isNotEmpty 
-                            ? NetworkImage(user.profilePic!) as ImageProvider
-                            : null),
-                      child: (_profilePicBytes == null && (user?.profilePic == null || user!.profilePic!.isEmpty))
-                        ? const Icon(Icons.person, size: 60, color: Colors.grey)
-                        : null,
+                    Builder(
+                      builder: (context) {
+                        if (_profilePicBytes != null) {
+                          return Container(
+                            width: 120,
+                            height: 120,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.grey[200]!, width: 2),
+                            ),
+                            child: ClipOval(
+                              child: Image.memory(_profilePicBytes!, fit: BoxFit.cover),
+                            ),
+                          );
+                        }
+                        
+                        return ImageUtils.buildCircleAvatar(
+                          imageUrl: user?.profilePic,
+                          radius: 60,
+                        );
+                      }
                     ),
                     Positioned(
                       bottom: 0,

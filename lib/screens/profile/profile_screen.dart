@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import 'edit_profile_screen.dart';
+import '../../utils/image_utils.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -28,11 +29,9 @@ class ProfileScreen extends StatelessWidget {
               padding: const EdgeInsets.all(24.0),
               child: Column(
                 children: [
-                  CircleAvatar(
+                  ImageUtils.buildCircleAvatar(
+                    imageUrl: user.profilePic,
                     radius: 50,
-                    backgroundColor: Colors.grey[200],
-                    backgroundImage: (user.profilePic != null && user.profilePic!.isNotEmpty) ? NetworkImage(user.profilePic!) : null,
-                    child: (user.profilePic == null || user.profilePic!.isEmpty) ? const Icon(Icons.person, size: 50, color: Colors.grey) : null,
                   ),
                   const SizedBox(height: 16),
                   Text(user.name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
@@ -56,18 +55,6 @@ class ProfileScreen extends StatelessWidget {
                     onTap: () {
                       Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen()));
                     },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.history),
-                    title: const Text('My Posts/Services'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {},
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.settings),
-                    title: const Text('Settings'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {},
                   ),
                 ],
               ),
