@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
 import '../../models/user.dart';
 import '../../models/post.dart';
 import '../../services/api_service.dart';
 import '../../providers/auth_provider.dart';
+import '../../theme/app_theme.dart';
 import '../post/portfolio_post_details_screen.dart';
 import '../../utils/image_utils.dart';
 
@@ -36,202 +39,328 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       
       Map<String, dynamic>? reviews;
       if (user.role == 'tradesman') {
-        try {
-          reviews = await ApiService().getReviews(widget.userId);
-        } catch (e) {
-          print("Error fetching reviews: $e");
-        }
+        try { reviews = await ApiService().getReviews(widget.userId); } catch (_) {}
       }
 
       setState(() {
         _user = user;
-        if (data['posts'] != null) {
-          _posts = (data['posts'] as List).map((e) => Post.fromJson(e)).toList();
-        }
+        if (data['posts'] != null) _posts = (data['posts'] as List).map((e) => Post.fromJson(e)).toList();
         _reviewsData = reviews;
         _isLoading = false;
       });
     } catch (e) {
-      print("Error fetching profile: $e");
       setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    if (_user == null) return const Scaffold(body: Center(child: Text('User not found')));
+    if (_isLoading) return const Scaffold(backgroundColor: AppTheme.background, body: Center(child: CircularProgressIndicator()));
+    if (_user == null) return const Scaffold(backgroundColor: AppTheme.background, body: Center(child: Text('User not found')));
 
     final isTradesman = _user!.role == 'tradesman';
 
     return DefaultTabController(
       length: isTradesman ? 3 : 1,
       child: Scaffold(
-        backgroundColor: Colors.white,
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          foregroundColor: Colors.black,
-          title: Text(_user!.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-          centerTitle: true,
-        ),
+        backgroundColor: AppTheme.background,
         body: NestedScrollView(
           headerSliverBuilder: (context, innerBoxIsScrolled) {
             return [
               SliverToBoxAdapter(
                 child: Column(
                   children: [
-                    const SizedBox(height: 16),
-                    _buildProfileImage(),
-                    const SizedBox(height: 16),
-                    Text(_user!.name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
-                    Text(
-                      _user!.location ?? 'No location',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                    ),
-                    const SizedBox(height: 24),
-                    if (isTradesman)
-                      TabBar(
-                        labelColor: const Color(0xFF2563EB),
-                        unselectedLabelColor: Colors.grey,
-                        indicatorColor: const Color(0xFF2563EB),
-                        indicatorSize: TabBarIndicatorSize.label,
-                        tabs: const [
-                          Tab(text: 'About'),
-                          Tab(text: 'Gallery'),
-                          Tab(text: 'Reviews'),
-                        ],
+                    // ── Header ──
+                    Container(
+                      width: double.infinity,
+                      decoration: const BoxDecoration(
+                        gradient: AppTheme.primaryGradient,
+                        borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
                       ),
+                      child: SafeArea(
+                        bottom: false,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(8, 4, 8, 28),
+                          child: Column(
+                            children: [
+                              // Back button row
+                              Row(
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                                    onPressed: () => Navigator.pop(context),
+                                  ),
+                                  const Spacer(),
+                                  Text(_user!.role == 'tradesman' ? 'Tradesman' : 'Customer', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 14)),
+                                  const Spacer(),
+                                  const SizedBox(width: 48),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              // Avatar
+                              Container(
+                                padding: const EdgeInsets.all(3),
+                                decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white.withOpacity(0.3), width: 3)),
+                                child: ImageUtils.buildCircleAvatar(imageUrl: _user!.profilePic, radius: 44),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(_user!.name, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700)),
+                              const SizedBox(height: 4),
+                              if (_user!.location != null)
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.location_on, size: 14, color: Colors.white.withOpacity(0.6)),
+                                    const SizedBox(width: 4),
+                                    Text(_user!.location!, style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 14)),
+                                  ],
+                                ),
+                              const SizedBox(height: 16),
+                              // Call button
+                              OutlinedButton.icon(
+                                onPressed: () async {
+                                  final phone = _user!.phone ?? '';
+                                  if (phone.isEmpty) {
+                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No phone number')));
+                                    return;
+                                  }
+                                  final Uri phoneUri = Uri(scheme: 'tel', path: phone);
+                                  if (await canLaunchUrl(phoneUri)) {
+                                    await launchUrl(phoneUri);
+                                  } else if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not launch phone app')));
+                                  }
+                                },
+                                icon: const Icon(Icons.phone_rounded, size: 18, color: Colors.white),
+                                label: const Text('Call Now', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(color: Colors.white.withOpacity(0.4)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // ── Tab Bar ──
+                    if (isTradesman)
+                      Container(
+                        margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                        ),
+                        child: TabBar(
+                          indicator: BoxDecoration(
+                            color: AppTheme.primary,
+                            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                          ),
+                          indicatorSize: TabBarIndicatorSize.tab,
+                          dividerColor: Colors.transparent,
+                          labelColor: Colors.white,
+                          unselectedLabelColor: AppTheme.textSecondary,
+                          labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                          tabs: const [Tab(text: 'About'), Tab(text: 'Gallery'), Tab(text: 'Reviews')],
+                        ),
+                      ),
+                    const SizedBox(height: 4),
                   ],
                 ),
               ),
             ];
           },
-          body: isTradesman 
-            ? TabBarView(
-                children: [
-                  _buildAboutTab(),
-                  _buildGalleryTab(),
-                  _buildReviewsTab(),
-                ],
-              )
-            : _buildAboutTab(), // Customers only have About
+          body: isTradesman
+              ? TabBarView(children: [_buildAboutTab(), _buildGalleryTab(), _buildReviewsTab()])
+              : _buildAboutTab(),
         ),
       ),
-    );
-  }
-
-  Widget _buildProfileImage() {
-    return ImageUtils.buildCircleAvatar(
-      imageUrl: _user!.profilePic,
-      radius: 50,
-      fallbackIcon: Icons.person,
     );
   }
 
   Widget _buildAboutTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24.0),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Contact Information', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 16),
-          _buildInfoRow(Icons.phone, 'Phone', _user!.phone),
-          const SizedBox(height: 16),
-          _buildInfoRow(Icons.email, 'Email', _user!.email),
-          const SizedBox(height: 24),
-          const Divider(),
-          const SizedBox(height: 24),
-          const Text('About', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          Text(_user!.bio ?? 'No bio available.', style: TextStyle(color: Colors.grey[700], height: 1.5)),
-          const SizedBox(height: 24),
-          
-          if (_user!.role == 'tradesman' && _user!.tradesmanInfo != null) ...[
-            _buildInfoRow(Icons.work_outline, 'Experience', '${_user!.tradesmanInfo!.experience} Years'),
-            const SizedBox(height: 16),
-            const Text('Skills', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _user!.tradesmanInfo!.skills.map((s) => Chip(
-                label: Text(s),
-                backgroundColor: const Color(0xFF2563EB).withValues(alpha: 0.05),
-                labelStyle: const TextStyle(color: Color(0xFF2563EB), fontSize: 12),
-                side: BorderSide.none,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              )).toList(),
-            ),
+          // Contact Info Card
+          _buildCard(
+            'Contact',
+            Icons.contacts_rounded,
+            children: [
+              _buildInfoRow(Icons.phone_rounded, 'Phone', _user!.phone, showCopy: true),
+              const Divider(height: 20, indent: 42),
+              _buildInfoRow(Icons.email_rounded, 'Email', _user!.email, showCopy: true),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Bio
+          if (_user!.bio != null && _user!.bio!.isNotEmpty) ...[
+            _buildCard('About', Icons.info_outline_rounded, children: [
+              Text(_user!.bio!, style: const TextStyle(color: AppTheme.textSecondary, height: 1.5, fontSize: 14)),
+            ]),
+            const SizedBox(height: 14),
           ],
+
+          // Tradesman specifics
+          if (_user!.role == 'tradesman' && _user!.tradesmanInfo != null) ...[
+            if (_user!.tradesmanInfo!.jobTypes.isNotEmpty) ...[
+              _buildCard('Specializations', Icons.build_rounded, children: [
+                Wrap(
+                  spacing: 8, runSpacing: 8,
+                  children: _user!.tradesmanInfo!.jobTypes.map((jt) => Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(color: AppTheme.primary.withOpacity(0.08), borderRadius: BorderRadius.circular(20)),
+                    child: Text(
+                      jt.replaceAll('_', ' ').split(' ').map((w) => w.isNotEmpty ? '${w[0].toUpperCase()}${w.substring(1)}' : '').join(' '),
+                      style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w600, fontSize: 12),
+                    ),
+                  )).toList(),
+                ),
+              ]),
+              const SizedBox(height: 14),
+            ],
+
+            _buildCard('Experience & Skills', Icons.timeline_rounded, children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(color: AppTheme.primary.withOpacity(0.08), borderRadius: BorderRadius.circular(10)),
+                    child: const Icon(Icons.work_rounded, color: AppTheme.primary, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Text('${_user!.tradesmanInfo!.experience ?? 0} Years Experience', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                ],
+              ),
+              if (_user!.tradesmanInfo!.skills.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 8, runSpacing: 8,
+                  children: _user!.tradesmanInfo!.skills.map((s) => Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(color: AppTheme.accent.withOpacity(0.08), borderRadius: BorderRadius.circular(20)),
+                    child: Text(s, style: const TextStyle(color: AppTheme.accent, fontWeight: FontWeight.w600, fontSize: 12)),
+                  )).toList(),
+                ),
+              ],
+            ]),
+          ],
+          const SizedBox(height: 20),
         ],
       ),
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value) {
+  Widget _buildCard(String title, IconData icon, {required List<Widget> children}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: AppTheme.divider.withOpacity(0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: AppTheme.primary, size: 18),
+              const SizedBox(width: 8),
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value, {bool showCopy = false}) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: const Color(0xFF2563EB)),
-        const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: TextStyle(color: Colors.grey[500], fontSize: 12)),
-            Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-          ],
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(color: AppTheme.accent.withOpacity(0.08), borderRadius: BorderRadius.circular(8)),
+          child: Icon(icon, size: 16, color: AppTheme.accent),
         ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: const TextStyle(color: AppTheme.textMuted, fontSize: 11)),
+              const SizedBox(height: 1),
+              Text(value, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+            ],
+          ),
+        ),
+        if (showCopy && value.isNotEmpty)
+          IconButton(
+            icon: const Icon(Icons.copy_rounded, size: 16, color: AppTheme.textMuted),
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: value));
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$label copied')));
+            },
+          ),
       ],
     );
   }
 
   Widget _buildGalleryTab() {
     if (_posts.isEmpty) {
-      return const Center(child: Text('No work gallery yet.'));
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.photo_library_outlined, size: 56, color: AppTheme.textMuted),
+            const SizedBox(height: 12),
+            const Text('No work gallery yet', style: TextStyle(color: AppTheme.textMuted, fontSize: 15)),
+          ],
+        ),
+      );
     }
     return GridView.builder(
       padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 1,
-      ),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 10, mainAxisSpacing: 10, childAspectRatio: 4 / 3),
       itemCount: _posts.length,
       itemBuilder: (context, index) {
         final post = _posts[index];
         return GestureDetector(
-          onTap: () {
-            Navigator.push(context, MaterialPageRoute(
-              builder: (_) => PortfolioPostDetailsScreen(postId: post.id),
-            ));
-          },
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PortfolioPostDetailsScreen(postId: post.id))),
           child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              color: Colors.grey[100],
-            ),
             clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+              color: AppTheme.background,
+              border: Border.all(color: AppTheme.divider.withOpacity(0.5)),
+            ),
             child: Stack(
               children: [
-                Positioned.fill(
-                  child: post.images.isNotEmpty 
-                    ? _buildPostThumbnail(post.images.first)
-                    : const Icon(Icons.image_not_supported),
+                Positioned.fill(child: post.images.isNotEmpty ? _buildPostThumbnail(post.images.first) : const Icon(Icons.image_not_supported_rounded, color: AppTheme.textMuted)),
+                // Title overlay
+                Positioned(
+                  bottom: 0, left: 0, right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(begin: Alignment.bottomCenter, end: Alignment.topCenter, colors: [Colors.black.withOpacity(0.6), Colors.transparent]),
+                    ),
+                    child: Text(post.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                  ),
                 ),
                 if (post.images.length > 1)
-                  const Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Icon(
-                      Icons.collections_rounded,
-                      color: Colors.white,
-                      size: 20,
-                      shadows: [Shadow(color: Colors.black26, blurRadius: 4)],
-                    ),
-                  ),
+                  Positioned(top: 6, right: 6, child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(6)),
+                    child: const Icon(Icons.collections_rounded, color: Colors.white, size: 14),
+                  )),
               ],
             ),
           ),
@@ -250,11 +379,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         b64 = b64.trim().replaceAll(RegExp(r'\s+'), '');
         while (b64.length % 4 != 0) b64 += '=';
         return Image.memory(base64Decode(b64), fit: BoxFit.cover);
-      } catch (_) {
-        return const Center(child: Icon(Icons.broken_image));
-      }
+      } catch (_) { return const Center(child: Icon(Icons.broken_image_rounded, color: AppTheme.textMuted)); }
     }
-    return Image.network(img, fit: BoxFit.cover);
+    return Image.network(img, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image_rounded, color: AppTheme.textMuted)));
   }
 
   void _showReviewDialog({String? reviewId, int? initialRating, String? initialComment}) {
@@ -266,7 +393,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text(isEditing ? 'Edit Review' : 'Add Review'),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusLg)),
+          title: Text(isEditing ? 'Edit Review' : 'Add Review', style: const TextStyle(fontWeight: FontWeight.w700)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -276,57 +404,37 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   onPressed: () {
                     setDialogState(() {
                       int newRating = index + 1;
-                      if (newRating == 1 && selectedRating == 1) {
-                        selectedRating = 0;
-                      } else {
-                        selectedRating = newRating;
-                      }
+                      selectedRating = (newRating == 1 && selectedRating == 1) ? 0 : newRating;
                     });
                   },
-                  icon: Icon(
-                    index < selectedRating ? Icons.star : Icons.star_border,
-                    color: Colors.amber,
-                    size: 32,
-                  ),
+                  icon: Icon(index < selectedRating ? Icons.star_rounded : Icons.star_outline_rounded, color: AppTheme.star, size: 32),
                 )),
               ),
-              const SizedBox(height: 8),
-              Text(selectedRating == 0 ? '0 Stars (Poor)' : '$selectedRating Stars', style: TextStyle(color: Colors.grey[600], fontSize: 13, fontWeight: FontWeight.w500)),
+              const SizedBox(height: 4),
+              Text(selectedRating == 0 ? '0 Stars' : '$selectedRating Stars', style: const TextStyle(color: AppTheme.textMuted, fontSize: 13, fontWeight: FontWeight.w500)),
               const SizedBox(height: 16),
               TextField(
                 controller: commentController,
-                decoration: const InputDecoration(
-                  hintText: 'Share your experience...',
-                  border: OutlineInputBorder(),
-                ),
+                decoration: const InputDecoration(hintText: 'Share your experience...'),
                 maxLines: 3,
+                maxLength: 250,
               ),
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary))),
             ElevatedButton(
               onPressed: () async {
                 try {
                   if (isEditing) {
-                    await ApiService().updateReview(
-                      reviewId: reviewId,
-                      rating: selectedRating,
-                      comment: commentController.text,
-                    );
+                    await ApiService().updateReview(reviewId: reviewId, rating: selectedRating, comment: commentController.text);
                   } else {
-                    await ApiService().createReview(
-                      tradesmanId: widget.userId,
-                      rating: selectedRating,
-                      comment: commentController.text,
-                    );
+                    await ApiService().createReview(tradesmanId: widget.userId, rating: selectedRating, comment: commentController.text);
                   }
                   Navigator.pop(context);
-                  _fetchProfile(); // Refresh
+                  _fetchProfile();
                 } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error: $e')),
-                  );
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
                 }
               },
               child: Text(isEditing ? 'Update' : 'Submit'),
@@ -342,151 +450,110 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     final avgRating = _reviewsData != null ? (_reviewsData!['averageRating']?.toString() ?? '0.0') : '0.0';
     final currentUser = context.watch<AuthProvider>().currentUser;
     final isCustomer = currentUser?.role == 'customer';
-    
-    // Check if current user already has a review
     final hasAlreadyReviewed = reviews.any((r) => r['customer']?['_id'] == currentUser?.id);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       child: Column(
+        children: [
+          // Summary Card
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+              border: Border.all(color: AppTheme.divider.withOpacity(0.5)),
+            ),
+            child: Row(
+              children: [
+                Text(avgRating, style: const TextStyle(fontSize: 44, fontWeight: FontWeight.w800, color: AppTheme.primary)),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: List.generate(5, (i) => Icon(i < double.parse(avgRating).floor() ? Icons.star_rounded : Icons.star_outline_rounded, color: AppTheme.star, size: 20))),
+                      const SizedBox(height: 4),
+                      Text('${reviews.length} reviews', style: const TextStyle(color: AppTheme.textMuted)),
+                    ],
+                  ),
+                ),
+                if (isCustomer && !hasAlreadyReviewed)
+                  ElevatedButton(
+                    onPressed: () => _showReviewDialog(),
+                    style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10)),
+                    child: const Text('Add', style: TextStyle(fontSize: 13)),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          if (reviews.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 32),
+              child: Column(
+                children: [
+                  Icon(Icons.rate_review_outlined, size: 48, color: AppTheme.textMuted),
+                  const SizedBox(height: 8),
+                  const Text('No reviews yet', style: TextStyle(color: AppTheme.textMuted)),
+                ],
+              ),
+            )
+          else
+            ...reviews.map((r) => _buildReviewItem(r, currentUser)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReviewItem(dynamic r, User? currentUser) {
+    final customer = r['customer'];
+    final customerId = customer?['_id'];
+    final isOwner = currentUser?.id == customerId;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        border: Border.all(color: AppTheme.divider.withOpacity(0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Text('Reviews', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const Spacer(),
-              if (isCustomer && !hasAlreadyReviewed)
-                TextButton.icon(
-                  onPressed: () => _showReviewDialog(),
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Add Review'),
-                  style: TextButton.styleFrom(foregroundColor: const Color(0xFF2563EB)),
-                ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(avgRating, style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold)),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: List.generate(5, (index) => Icon(
-                      index < double.parse(avgRating).floor() ? Icons.star : Icons.star_border,
-                      color: Colors.amber,
-                      size: 20,
-                    )),
-                  ),
-                  Text('${reviews.length} reviews', style: TextStyle(color: Colors.grey[600])),
-                ],
+              GestureDetector(
+                onTap: customerId != null ? () => Navigator.push(context, MaterialPageRoute(builder: (_) => UserProfileScreen(userId: customerId))) : null,
+                child: ImageUtils.buildCircleAvatar(imageUrl: customer?['profilePic'], radius: 16),
               ),
-            ],
-          ),
-          const SizedBox(height: 32),
-          if (reviews.isEmpty)
-            const Center(child: Text('No reviews yet.'))
-          else
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: reviews.length,
-              separatorBuilder: (_, __) => const Divider(height: 32),
-              itemBuilder: (context, index) {
-                final r = reviews[index];
-                final customer = r['customer'];
-                final customerId = customer?['_id'];
-                final isOwner = currentUser?.id == customerId;
-
-                return Column(
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        GestureDetector(
-                          onTap: () {
-                            if (customerId != null) {
-                              Navigator.push(context, MaterialPageRoute(
-                                builder: (_) => UserProfileScreen(userId: customerId),
-                              ));
-                            }
-                          },
-                          child: Builder(
-                            builder: (context) {
-                              final pic = customer?['profilePic'];
-                              if (pic == null || pic.isEmpty) {
-                                return CircleAvatar(
-                                  radius: 16, 
-                                  backgroundColor: const Color(0xFF2563EB).withValues(alpha: 0.1),
-                                  child: Text(customer?['name']?[0] ?? '?', style: const TextStyle(fontSize: 12, color: Color(0xFF2563EB)))
-                                );
-                              }
-                              final isUrl = pic.startsWith('http');
-                              final isBase64 = pic.startsWith('data:image') || (!isUrl && pic.length > 50);
-                              if (isBase64 && !isUrl) {
-                                try {
-                                  String b64 = pic;
-                                  if (b64.contains(',')) b64 = b64.substring(b64.indexOf(',') + 1);
-                                  b64 = b64.trim().replaceAll(RegExp(r'\s+'), '');
-                                  while (b64.length % 4 != 0) b64 += '=';
-                                  return CircleAvatar(radius: 16, backgroundImage: MemoryImage(base64Decode(b64)));
-                                } catch (_) {
-                                  return const CircleAvatar(radius: 16, child: Icon(Icons.person, size: 16));
-                                }
-                              }
-                              return CircleAvatar(radius: 16, backgroundImage: NetworkImage(pic));
-                            }
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              GestureDetector(
-                                onTap: () {
-                                  if (customerId != null) {
-                                    Navigator.push(context, MaterialPageRoute(
-                                      builder: (_) => UserProfileScreen(userId: customerId),
-                                    ));
-                                  }
-                                },
-                                child: Text(customer?['name'] ?? 'User', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                              ),
-                              Row(
-                                children: [
-                                  Text(r['rating'].toString(), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.amber, fontSize: 12)),
-                                  const Icon(Icons.star, color: Colors.amber, size: 14),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (isOwner) ...[
-                          IconButton(
-                            icon: const Icon(Icons.edit, size: 18, color: Colors.grey),
-                            onPressed: () => _showReviewDialog(
-                              reviewId: r['_id'],
-                              initialRating: r['rating'],
-                              initialComment: r['comment'],
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
-                            onPressed: () => _confirmDeleteReview(r['_id']),
-                          ),
-                        ],
-                      ],
+                    GestureDetector(
+                      onTap: customerId != null ? () => Navigator.push(context, MaterialPageRoute(builder: (_) => UserProfileScreen(userId: customerId))) : null,
+                      child: Text(customer?['name'] ?? 'User', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                     ),
-                    const SizedBox(height: 10),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 42.0),
-                      child: Text(r['comment'] ?? '', style: TextStyle(color: Colors.grey[800], fontSize: 14, height: 1.4)),
-                    ),
+                    Row(children: [
+                      ...List.generate(5, (i) => Icon(i < (r['rating'] ?? 0) ? Icons.star_rounded : Icons.star_outline_rounded, color: AppTheme.star, size: 14)),
+                    ]),
                   ],
-                );
-              },
+                ),
+              ),
+              if (isOwner) ...[
+                IconButton(icon: const Icon(Icons.edit_rounded, size: 16, color: AppTheme.textMuted), onPressed: () => _showReviewDialog(reviewId: r['_id'], initialRating: r['rating'], initialComment: r['comment'])),
+                IconButton(icon: const Icon(Icons.delete_outline_rounded, size: 16, color: AppTheme.error), onPressed: () => _confirmDeleteReview(r['_id'])),
+              ],
+            ],
+          ),
+          if (r['comment'] != null && r['comment'].toString().isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(left: 42, top: 8),
+              child: Text(r['comment'], style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13, height: 1.4)),
             ),
         ],
       ),
@@ -497,11 +564,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Review'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusLg)),
+        title: const Text('Delete Review', style: TextStyle(fontWeight: FontWeight.w700)),
         content: const Text('Are you sure you want to delete this review?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          TextButton(
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary))),
+          ElevatedButton(
             onPressed: () async {
               try {
                 await ApiService().deleteReview(reviewId);
@@ -511,11 +579,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
               }
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error),
+            child: const Text('Delete'),
           ),
         ],
       ),
     );
   }
 }
-

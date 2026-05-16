@@ -20,14 +20,15 @@ class AuthProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     await _apiService.init();
+    _currentUser = _apiService.currentUser;
     _isLoading = false;
     notifyListeners();
   }
 
-  Future<bool> login(String phone, String password) async {
+  Future<bool> login(String identifier, String password) async {
     try {
       _setLoading(true);
-      final data = await _apiService.login(phone, password);
+      final data = await _apiService.login(identifier, password);
       _currentUser = User.fromJson(data['user']);
       _setLoading(false);
       return true;
@@ -43,10 +44,22 @@ class AuthProvider with ChangeNotifier {
     required String email,
     required String role,
     required String password,
+    List<String>? jobTypes,
+    String? location,
+    int? experience,
   }) async {
     try {
       _setLoading(true);
-      await _apiService.register(name: name, phone: phone, email: email, role: role, password: password);
+      await _apiService.register(
+        name: name,
+        phone: phone,
+        email: email,
+        role: role,
+        password: password,
+        jobTypes: jobTypes,
+        location: location,
+        experience: experience,
+      );
       _setLoading(false);
       return true;
     } catch (e) {
@@ -66,6 +79,7 @@ class AuthProvider with ChangeNotifier {
     String? bio,
     String? location,
     List<String>? skills,
+    List<String>? jobTypes,
     int? experience,
     Uint8List? profilePicBytes,
     String? profilePicName,
@@ -81,6 +95,12 @@ class AuthProvider with ChangeNotifier {
       if (skills != null) {
         for (var skill in skills) {
           formData.fields.add(MapEntry('skills', skill));
+        }
+      }
+
+      if (jobTypes != null) {
+        for (var jt in jobTypes) {
+          formData.fields.add(MapEntry('jobTypes', jt));
         }
       }
 

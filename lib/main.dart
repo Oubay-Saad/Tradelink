@@ -5,12 +5,15 @@ import 'providers/auth_provider.dart';
 import 'providers/data_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/main_layout.dart';
+import 'screens/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   final authProvider = AuthProvider();
-  await authProvider.init();
+  
+  // Do not await here, so runApp can render the splash screen immediately.
+  authProvider.init();
 
   runApp(
     MultiProvider(
@@ -32,10 +35,18 @@ class TradeLinkApp extends StatelessWidget {
       title: 'TradeLink',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.theme,
+      builder: (context, child) {
+        return GestureDetector(
+          onTap: () {
+            FocusManager.instance.primaryFocus?.unfocus();
+          },
+          child: child,
+        );
+      },
       home: Consumer<AuthProvider>(
         builder: (context, auth, _) {
           if (auth.isLoading) {
-            return const Scaffold(body: Center(child: CircularProgressIndicator()));
+            return const SplashScreen();
           }
           return auth.isAuthenticated ? const MainLayout() : const LoginScreen();
         },

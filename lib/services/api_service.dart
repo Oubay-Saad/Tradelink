@@ -35,12 +35,22 @@ class ApiService {
     final prefs = await SharedPreferences.getInstance();
     token = prefs.getString('token');
     
-    // Optionally fetch user profile if token exists
+    if (token != null) {
+      try {
+        final res = await _dio.get('/auth/me');
+        currentUser = User.fromJson(res.data['user']);
+      } catch (e) {
+        // If token is invalid or expired
+        token = null;
+        currentUser = null;
+        await prefs.remove('token');
+      }
+    }
   }
 
   // --- Auth ---
-  Future<Map<String, dynamic>> login(String phone, String password) async {
-    final res = await _dio.post('/auth/login', data: {'phone': phone, 'password': password});
+  Future<Map<String, dynamic>> login(String identifier, String password) async {
+    final res = await _dio.post('/auth/login', data: {'identifier': identifier, 'password': password});
     token = res.data['token'];
     currentUser = User.fromJson(res.data['user']);
     final prefs = await SharedPreferences.getInstance();
@@ -54,15 +64,51 @@ class ApiService {
     required String email,
     required String role,
     required String password,
+    List<String>? jobTypes,
+    String? location,
+    int? experience,
   }) async {
-    final res = await _dio.post('/auth/register', data: {
+    final Map<String, dynamic> data = {
       'name': name,
       'phone': phone,
       'email': email,
       'role': role,
       'password': password,
-    });
+      if (location != null) 'location': location,
+      if (experience != null) 'experience': experience,
+    };
+    if (jobTypes != null && jobTypes.isNotEmpty) {
+      data['jobTypes'] = jobTypes;
+    }
+    final res = await _dio.post('/auth/register', data: data);
     return res.data;
+  }
+
+  Future<List<Map<String, dynamic>>> getJobTypes() async {
+    final res = await _dio.get('/job-types');
+    final List data = res.data['jobTypes'] ?? [];
+    return data.map((e) => Map<String, dynamic>.from(e)).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> getWilayas() async {
+    final res = await _dio.get('/wilayas');
+    final List data = res.data['wilayas'] ?? [];
+    return data.map((e) => Map<String, dynamic>.from(e)).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> getTopTradesmen({String? jobType, int limit = 5}) async {
+    final res = await _dio.get('/users/top-tradesmen', queryParameters: {
+      if (jobType != null && jobType.isNotEmpty && jobType.toLowerCase() != 'all') 'jobType': jobType,
+      'limit': limit.toString(),
+    });
+    final List data = res.data['topTradesmen'] ?? [];
+    return data.map((e) => Map<String, dynamic>.from(e)).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> getNearbyTradesmen({int limit = 10}) async {
+    final res = await _dio.get('/users/nearby', queryParameters: {'limit': limit.toString()});
+    final List data = res.data['nearbyTradesmen'] ?? [];
+    return data.map((e) => Map<String, dynamic>.from(e)).toList();
   }
 
   Future<void> logout() async {
@@ -130,6 +176,14 @@ class ApiService {
     await _dio.delete('/services/$id');
   }
 
+  Future<void> editService(String id, dynamic data) async {
+    await _dio.patch('/services/$id', data: data);
+  }
+
+  Future<void> deleteServiceImage(String id, int index) async {
+    await _dio.delete('/services/$id/images/$index');
+  }
+
   Future<List<Post>> getAllPosts({String? name}) async {
     final res = await _dio.get('/posts', queryParameters: {
       if (name != null && name.isNotEmpty) 'name': name,
@@ -176,6 +230,24 @@ class ApiService {
 
   Future<void> deleteRequest(String requestId) async {
     await _dio.delete('/requests/$requestId');
+  }
+
+  Future<List<User>> searchTradesmen({String? name, String? location, String? jobType, int? experience, String? role}) async {
+    try {
+      final Map<String, dynamic> queryParameters = {};
+      if (name != null && name.isNotEmpty) queryParameters['name'] = name;
+      if (location != null && location.isNotEmpty) queryParameters['location'] = location;
+      if (jobType != null && jobType.isNotEmpty && jobType.toLowerCase() != 'all') queryParameters['jobType'] = jobType;
+      if (experience != null && experience > 0) queryParameters['experience'] = experience.toString();
+      if (role != null && role.isNotEmpty && role.toLowerCase() != 'all') queryParameters['role'] = role;
+
+      final res = await _dio.get('/users/search', queryParameters: queryParameters);
+      final List data = res.data['results'];
+      return data.map((e) => User.fromJson(e)).toList();
+    } on DioException catch (e) {
+      print('Search Error: ${e.response?.data}');
+      return [];
+    }
   }
 
   Future<Map<String, dynamic>> getReviews(String tradesmanId) async {

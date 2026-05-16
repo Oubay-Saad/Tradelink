@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
-
+import '../theme/app_theme.dart';
+import '../utils/image_utils.dart';
 
 class ServiceCard extends StatelessWidget {
   final String title;
@@ -25,128 +26,86 @@ class ServiceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 14),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
-        ],
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: AppTheme.divider.withOpacity(0.5)),
       ),
-      clipBehavior: Clip.antiAlias,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          mouseCursor: SystemMouseCursors.click,
+          borderRadius: BorderRadius.circular(AppTheme.radiusLg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ── Image (4:3) ──
               if (imageUrl != null && imageUrl!.isNotEmpty)
-                Builder(
-                  builder: (context) {
-                    final isUrl = imageUrl!.startsWith('http');
-                    final isBase64 = imageUrl!.startsWith('data:image') || (!isUrl && imageUrl!.length > 50);
-                    final isHtml = imageUrl!.trim().startsWith('<');
+                AspectRatio(
+                  aspectRatio: 4 / 3,
+                  child: Builder(
+                    builder: (context) {
+                      final isUrl = imageUrl!.startsWith('http');
+                      final isBase64 = imageUrl!.startsWith('data:image') || (!isUrl && imageUrl!.length > 50);
+                      final isHtml = imageUrl!.trim().startsWith('<');
 
-                    if (isBase64 && !isHtml && !isUrl) {
-                      try {
-                        String base64String = imageUrl!;
-                        if (base64String.contains(',')) {
-                          base64String = base64String.substring(base64String.indexOf(',') + 1);
+                      if (isBase64 && !isHtml && !isUrl) {
+                        try {
+                          String base64String = imageUrl!;
+                          if (base64String.contains(',')) base64String = base64String.substring(base64String.indexOf(',') + 1);
+                          base64String = base64String.trim().replaceAll(RegExp(r'\s+'), '');
+                          while (base64String.length % 4 != 0) base64String += '=';
+                          return Image.memory(base64Decode(base64String), fit: BoxFit.cover, errorBuilder: (_, __, ___) => _errorPlaceholder());
+                        } catch (e) {
+                          return _errorPlaceholder();
                         }
-                        base64String = base64String.trim().replaceAll(RegExp(r'\s+'), '');
-                        
-                        while (base64String.length % 4 != 0) {
-                          base64String += '=';
-                        }
-
-                        final bytes = base64Decode(base64String);
-                        return Image.memory(
-                          bytes,
-                          height: 180,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _errorPlaceholder(),
-                        );
-                      } catch (e) {
-                        return _errorPlaceholder();
                       }
-                    }
-                    
-                    if (isHtml) {
-                      return _errorPlaceholder();
-                    }
-                    return Image.network(
-                      imageUrl!,
-                      height: 180,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _errorPlaceholder(),
-                    );
-                  }
+                      if (isHtml) return _errorPlaceholder();
+                      return Image.network(imageUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _errorPlaceholder());
+                    },
+                  ),
                 ),
+
+              // ── Content ──
               Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
-                          child: Text(
-                            title,
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                          child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.textPrimary), maxLines: 2, overflow: TextOverflow.ellipsis),
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '\$$budget',
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2563EB)),
+                        const SizedBox(width: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(color: AppTheme.primary.withOpacity(0.08), borderRadius: BorderRadius.circular(8)),
+                          child: Text('\$$budget', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppTheme.primary)),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      description,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: Colors.grey[600], height: 1.4),
-                    ),
-                    const SizedBox(height: 16),
-                    MouseRegion(
-                      cursor: onProfileTap != null ? SystemMouseCursors.click : SystemMouseCursors.basic,
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: onProfileTap,
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 14,
-                              backgroundColor: const Color(0xFF2563EB).withOpacity(0.1),
-                              child: const Icon(Icons.person, size: 16, color: Color(0xFF2563EB)),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              authorName, 
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600, 
-                                fontSize: 14, 
-                                color: onProfileTap != null ? Colors.grey[800] : Colors.black87
-                              )
-                            ),
-                          ],
-                        ),
+                    const SizedBox(height: 6),
+                    Text(description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppTheme.textSecondary, height: 1.4, fontSize: 13)),
+                    const SizedBox(height: 10),
+                    // Author
+                    GestureDetector(
+                      onTap: onProfileTap,
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(color: AppTheme.accent.withOpacity(0.08), borderRadius: BorderRadius.circular(6)),
+                            child: const Icon(Icons.person_rounded, size: 14, color: AppTheme.accent),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(authorName, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13, fontWeight: FontWeight.w500)),
+                        ],
                       ),
-                    )
+                    ),
                   ],
                 ),
               ),
@@ -156,11 +115,11 @@ class ServiceCard extends StatelessWidget {
       ),
     );
   }
+
   Widget _errorPlaceholder() {
     return Container(
-      height: 180,
-      color: Colors.grey[200],
-      child: const Icon(Icons.image_not_supported, color: Colors.grey),
+      color: AppTheme.background,
+      child: const Center(child: Icon(Icons.image_not_supported_rounded, color: AppTheme.textMuted, size: 36)),
     );
   }
 }

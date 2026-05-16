@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/services.dart';
@@ -10,6 +11,8 @@ import '../../services/api_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/data_provider.dart';
 import '../profile/user_profile_screen.dart';
+import '../services/edit_service_screen.dart';
+import '../../theme/app_theme.dart';
 
 class PostDetailsScreen extends StatefulWidget {
   final String serviceId;
@@ -95,7 +98,7 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
       await ApiService().updateRequestStatus(reqId, status);
       _fetchDetails();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Request \$status')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Request $status')));
       }
     } catch (e) {
       if (mounted) {
@@ -184,12 +187,27 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
     final hasAcceptedRequest = _requests.any((r) => r['status'] == 'Accepted');
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: const Text('Service Details', style: TextStyle(fontWeight: FontWeight.bold)),
         elevation: 0,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
+        actions: [
+          if (isOwner && !isTradesman && _service != null)
+            IconButton(
+              icon: const Icon(Icons.edit_rounded, color: AppTheme.primary),
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => EditServiceScreen(service: _service!)),
+                );
+                if (result == true) {
+                  _fetchDetails();
+                }
+              },
+            ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -208,8 +226,8 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                       Expanded(child: Text(_service!.title, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, height: 1.2))),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(color: const Color(0xFF2563EB).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-                        child: Text('\$${_service!.budget}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF2563EB))),
+                        decoration: BoxDecoration(color: AppTheme.primary.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
+                        child: Text('\$${_service!.budget}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.primary)),
                       ),
                     ],
                   ),
@@ -337,9 +355,9 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                             Container(
                               padding: const EdgeInsets.all(20),
                               decoration: BoxDecoration(
-                                color: Colors.blue.withValues(alpha: 0.05),
+                                color: AppTheme.primary.withOpacity(0.05),
                                 borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: Colors.blue.withValues(alpha: 0.1)),
+                                border: Border.all(color: AppTheme.primary.withOpacity(0.1)),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -347,11 +365,11 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text('My Price: \$${myRequest['estimatedPrice']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.blue)),
+                                      Text('My Price: \$${myRequest['estimatedPrice']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.primary)),
                                       Row(
                                         children: [
                                           IconButton(
-                                            icon: const Icon(Icons.edit, color: Colors.blue),
+                                            icon: const Icon(Icons.edit, color: AppTheme.primary),
                                             onPressed: () => _showApplyDialog(context, existingRequest: myRequest),
                                             tooltip: 'Edit Application',
                                           ),
@@ -435,11 +453,11 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                                       const SizedBox(height: 16),
                                       Row(
                                         children: [
-                                          CircleAvatar(radius: 12, backgroundColor: Colors.blue.withValues(alpha: 0.1), child: const Icon(Icons.person, size: 14, color: Colors.blue)),
+                                          CircleAvatar(radius: 12, backgroundColor: AppTheme.primary.withOpacity(0.1), child: const Icon(Icons.person, size: 14, color: AppTheme.primary)),
                                           const SizedBox(width: 8),
-                                          const Text('View professional\'s profile', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.w600)),
+                                          const Text('View professional\'s profile', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w600)),
                                           const Spacer(),
-                                          const Icon(Icons.chevron_right, color: Colors.blue, size: 20),
+                                          const Icon(Icons.chevron_right, color: AppTheme.primary, size: 20),
                                         ],
                                       ),
                                       if (reqStatus == 'Pending' && !hasAcceptedRequest) ...[
@@ -478,6 +496,38 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                                             ),
                                           ],
                                         )
+                                      ] else if (reqStatus == 'Accepted' && req['requestedBy'] != null && req['requestedBy']['phone'] != null) ...[
+                                        const SizedBox(height: 16),
+                                        const Divider(),
+                                        const SizedBox(height: 8),
+                                        SizedBox(
+                                          width: double.infinity,
+                                          child: ElevatedButton.icon(
+                                            onPressed: () async {
+                                              final phone = req['requestedBy']['phone']?.toString() ?? '';
+                                              if (phone.isEmpty) {
+                                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('User does not have a phone number')));
+                                                return;
+                                              }
+                                              final Uri phoneUri = Uri(scheme: 'tel', path: phone);
+                                              if (await canLaunchUrl(phoneUri)) {
+                                                await launchUrl(phoneUri);
+                                              } else {
+                                                if (context.mounted) {
+                                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not launch phone app')));
+                                                }
+                                              }
+                                            },
+                                            icon: const Icon(Icons.phone),
+                                            label: const Text('Call Now'),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: AppTheme.primary,
+                                              foregroundColor: Colors.white,
+                                              padding: const EdgeInsets.symmetric(vertical: 12),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                            ),
+                                          ),
+                                        )
                                       ]
                                     ],
                                   ),
@@ -512,24 +562,61 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
               if (isTradesman && !isOwner) {
                 if (myRequest != null) {
                   final status = myRequest['status'];
-                  return Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    decoration: BoxDecoration(
-                      color: status == 'Accepted' ? Colors.green.withOpacity(0.1) : 
-                             status == 'Rejected' ? Colors.red.withOpacity(0.1) : 
-                             Colors.orange.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      'Application Status: $status',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: status == 'Accepted' ? Colors.green : 
-                               status == 'Rejected' ? Colors.red : 
-                               Colors.orange,
-                        fontWeight: FontWeight.bold,
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: status == 'Accepted' ? Colors.green.withOpacity(0.1) : 
+                                 status == 'Rejected' ? Colors.red.withOpacity(0.1) : 
+                                 Colors.orange.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          'Application Status: $status',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: status == 'Accepted' ? Colors.green : 
+                                   status == 'Rejected' ? Colors.red : 
+                                   Colors.orange,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                    ),
+                      if (status == 'Accepted' && _service?.createdBy != null && _service!.createdBy!.phone != null) ...[
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              final phone = _service!.createdBy!.phone ?? '';
+                              if (phone.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Owner does not have a phone number')));
+                                return;
+                              }
+                              final Uri phoneUri = Uri(scheme: 'tel', path: phone);
+                              if (await canLaunchUrl(phoneUri)) {
+                                await launchUrl(phoneUri);
+                              } else {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not launch phone app')));
+                                }
+                              }
+                            },
+                            icon: const Icon(Icons.phone),
+                            label: const Text('Call Now'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   );
                 }
 
