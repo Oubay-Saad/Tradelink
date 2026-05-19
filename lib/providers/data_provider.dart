@@ -17,13 +17,17 @@ class DataProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isRequestsLoading => _isRequestsLoading;
 
-  Future<void> fetchServices({String? jobType}) async {
+  Future<void> fetchServices({String? jobTypes, String? location, String? timeUploaded}) async {
     _isLoading = true;
     notifyListeners();
     try {
-      _services = await _apiService.getServices(jobType: jobType);
+      _services = await _apiService.getServices(
+        jobTypes: jobTypes,
+        location: location,
+        timeUploaded: timeUploaded,
+      );
     } catch (e) {
-      print("Error fetching services: \$e");
+      print("Error fetching services: $e");
     }
     _isLoading = false;
     notifyListeners();

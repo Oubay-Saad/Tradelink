@@ -4,6 +4,7 @@ import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/image_utils.dart';
 import 'edit_profile_screen.dart';
+import 'my_posts_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -228,14 +229,33 @@ class ProfileScreen extends StatelessWidget {
                   // ── Action Buttons ──
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen())),
-                        icon: const Icon(Icons.edit_rounded, size: 18),
-                        label: const Text('Edit Profile'),
-                        style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
-                      ),
+                    child: Column(
+                      children: [
+                        if (user.role == 'tradesman') ...[
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyPostsScreen())),
+                              icon: const Icon(Icons.collections_rounded, size: 18),
+                              label: const Text('My Posts'),
+                              style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen())),
+                            icon: const Icon(Icons.edit_rounded, size: 18, color: AppTheme.primary),
+                            label: const Text('Edit Profile', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w600)),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: AppTheme.primary),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
 

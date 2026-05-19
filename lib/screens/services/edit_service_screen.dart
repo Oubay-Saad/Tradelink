@@ -11,6 +11,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io' as io;
 import '../../utils/image_utils.dart';
+import 'dart:convert';
 
 class EditServiceScreen extends StatefulWidget {
   final ServiceItem service;
@@ -28,6 +29,8 @@ class _EditServiceScreenState extends State<EditServiceScreen> {
   List<String> _existingImages = [];
   final List<XFile> _newImages = [];
   final ImagePicker _picker = ImagePicker();
+  List<String> _selectedJobTypes = [];
+  List<Map<String, dynamic>> _allJobTypes = [];
 
   @override
   void initState() {
@@ -36,6 +39,106 @@ class _EditServiceScreenState extends State<EditServiceScreen> {
     _titleController = TextEditingController(text: widget.service.title);
     _descController = TextEditingController(text: widget.service.description ?? '');
     _budgetController = TextEditingController(text: widget.service.budget.toString());
+    _selectedJobTypes = List.from(widget.service.jobTypes);
+    _loadJobTypes();
+  }
+
+  void _loadJobTypes() async {
+    try {
+      final types = await ApiService().getJobTypes();
+      setState(() {
+        _allJobTypes = types;
+      });
+    } catch (_) {}
+  }
+
+  void _showJobTypePicker() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        List<String> tempSelected = List.from(_selectedJobTypes);
+        final searchController = TextEditingController();
+        String searchQuery = '';
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final filtered = _allJobTypes.where((jt) {
+              final en = (jt['en'] ?? '').toString().toLowerCase();
+              return en.contains(searchQuery.toLowerCase());
+            }).toList();
+            return DraggableScrollableSheet(
+              initialChildSize: 0.7,
+              maxChildSize: 0.9,
+              minChildSize: 0.4,
+              expand: false,
+              builder: (context, scrollController) {
+                return Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Select Job Types', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          TextButton(
+                            onPressed: () {
+                              setState(() => _selectedJobTypes = tempSelected);
+                              Navigator.pop(context);
+                            },
+                            child: const Text('Done', style: TextStyle(color: Color(0xFF2563EB), fontWeight: FontWeight.bold, fontSize: 16)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: searchController,
+                        decoration: InputDecoration(
+                          hintText: 'Search job types...',
+                          prefixIcon: const Icon(Icons.search),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                          contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                        ),
+                        onChanged: (val) => setModalState(() => searchQuery = val),
+                      ),
+                      const SizedBox(height: 8),
+                      Expanded(
+                        child: ListView.builder(
+                          controller: scrollController,
+                          itemCount: filtered.length,
+                          itemBuilder: (context, index) {
+                            final jt = filtered[index];
+                            final value = jt['value'] as String;
+                            final label = jt['en'] as String;
+                            final isSelected = tempSelected.contains(value);
+                            return CheckboxListTile(
+                              title: Text(label),
+                              value: isSelected,
+                              activeColor: const Color(0xFF2563EB),
+                              onChanged: (checked) {
+                                setModalState(() {
+                                  if (checked == true) {
+                                    tempSelected.add(value);
+                                  } else {
+                                    tempSelected.remove(value);
+                                  }
+                                });
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
   }
 
   Future<void> _deleteExistingImage(int index) async {
@@ -82,12 +185,18 @@ class _EditServiceScreenState extends State<EditServiceScreen> {
       return;
     }
 
+    if (_selectedJobTypes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select at least one job type')));
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
       final Map<String, dynamic> data = {
         'title': _titleController.text,
         'description': _descController.text.isEmpty ? null : _descController.text,
         'budget': _budgetController.text.isNotEmpty ? double.parse(_budgetController.text) : 0.0,
+        'jobTypes': jsonEncode(_selectedJobTypes),
       };
 
       List<MultipartFile> imageFiles = [];
@@ -275,11 +384,61 @@ class _EditServiceScreenState extends State<EditServiceScreen> {
                   const SizedBox(height: 12),
                   TextField(
                     controller: _budgetController,
-                    decoration: const InputDecoration(hintText: 'Budget (\$)', prefixIcon: Icon(Icons.attach_money_rounded)),
+                    decoration: const InputDecoration(hintText: 'Budget (DA)', prefixIcon: Icon(Icons.payments_outlined)),
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
                   ),
-                ],
+                    const SizedBox(height: 16),
+                    const Row(
+                      children: [
+                        Icon(Icons.category_outlined, color: AppTheme.primary, size: 20),
+                        SizedBox(width: 8),
+                        Text('Job Types *', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    InkWell(
+                      onTap: _allJobTypes.isEmpty ? null : _showJobTypePicker,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppTheme.divider),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: _allJobTypes.isEmpty
+                                  ? const Text('Loading job types...', style: TextStyle(color: AppTheme.textMuted))
+                                  : _selectedJobTypes.isEmpty
+                                      ? const Text('Select Job Types', style: TextStyle(color: AppTheme.textMuted))
+                                      : Text('${_selectedJobTypes.length} selected', style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
+                            ),
+                            const Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.textMuted),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (_selectedJobTypes.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _selectedJobTypes.map((jt) {
+                          final label = _allJobTypes.firstWhere((j) => j['value'] == jt, orElse: () => {'en': jt})['en'] as String;
+                          return Chip(
+                            label: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                            backgroundColor: AppTheme.primary.withOpacity(0.06),
+                            side: BorderSide(color: AppTheme.primary.withOpacity(0.15)),
+                            deleteIcon: const Icon(Icons.close_rounded, size: 14, color: AppTheme.primary),
+                            onDeleted: () => setState(() => _selectedJobTypes.remove(jt)),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ],
               ),
             ),
             const SizedBox(height: 28),

@@ -9,6 +9,7 @@ class ServiceItem {
   final List<String> images;
   final dynamic createdBy;
   final DateTime? createdAt;
+  final String? location;
 
   ServiceItem({
     required this.id,
@@ -19,6 +20,7 @@ class ServiceItem {
     required this.images,
     required this.createdBy,
     this.createdAt,
+    this.location,
   });
 
   factory ServiceItem.fromJson(Map<String, dynamic> json) {
@@ -31,6 +33,7 @@ class ServiceItem {
       images: List<String>.from(json['images'] ?? []),
       createdBy: json['createdBy'] is Map ? User.fromJson(json['createdBy']) : json['createdBy'],
       createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
+      location: json['location'],
     );
   }
 }

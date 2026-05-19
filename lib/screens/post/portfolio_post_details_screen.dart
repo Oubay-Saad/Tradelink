@@ -6,6 +6,9 @@ import '../../models/post.dart';
 import '../../models/user.dart';
 import '../../services/api_service.dart';
 import '../profile/user_profile_screen.dart';
+import 'edit_post_screen.dart';
+import '../../providers/auth_provider.dart';
+import '../../theme/app_theme.dart';
 
 import '../../utils/image_utils.dart';
 
@@ -71,6 +74,59 @@ class _PortfolioPostDetailsScreenState extends State<PortfolioPostDetailsScreen>
     }
   }
 
+  void _editPost() {
+    if (_post == null) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => EditPostScreen(post: _post!)),
+    ).then((updated) {
+      if (updated == true) {
+        setState(() {
+          _isLoading = true;
+          _decodedImages.clear();
+        });
+        _fetchPost();
+      }
+    });
+  }
+
+  void _deletePost() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusLg)),
+        title: const Text('Delete Post', style: TextStyle(fontWeight: FontWeight.w700)),
+        content: const Text('Are you sure you want to delete this portfolio post?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              setState(() => _isLoading = true);
+              try {
+                await ApiService().deletePost(widget.postId);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Post deleted successfully')));
+                  Navigator.pop(context, true); // return true to refresh list
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to delete post: $e'), backgroundColor: AppTheme.error));
+                  setState(() => _isLoading = false);
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildImage(int index) {
     if (_decodedImages.containsKey(index)) {
       return Image.memory(
@@ -101,11 +157,10 @@ class _PortfolioPostDetailsScreenState extends State<PortfolioPostDetailsScreen>
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    if (_post == null) {
-      return const Scaffold(body: Center(child: Text('Post not found')));
-    }
-
-    final postedBy = _post!.postedBy is User ? _post!.postedBy as User : null;
+    final currentUser = context.watch<AuthProvider>().currentUser;
+    final dynamic creator = _post!.postedBy;
+    final String? creatorId = creator is User ? creator.id : (creator is Map ? creator['_id'] : creator?.toString());
+    final isOwner = currentUser != null && creatorId == currentUser.id;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -114,6 +169,40 @@ class _PortfolioPostDetailsScreenState extends State<PortfolioPostDetailsScreen>
         elevation: 0,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
+        actions: [
+          if (isOwner)
+            PopupMenuButton<String>(
+              onSelected: (val) {
+                if (val == 'edit') {
+                  _editPost();
+                } else if (val == 'delete') {
+                  _deletePost();
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'edit',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit_rounded, color: AppTheme.textPrimary, size: 20),
+                      SizedBox(width: 8),
+                      Text('Edit Post'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_rounded, color: AppTheme.error, size: 20),
+                      SizedBox(width: 8),
+                      Text('Delete Post', style: TextStyle(color: AppTheme.error)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(

@@ -98,6 +98,8 @@ class _MyServicesScreenState extends State<MyServicesScreen> {
                           imageUrl: service.images.isNotEmpty ? service.images.first : null,
                           budget: service.budget,
                           authorName: 'Me',
+                          location: service.location,
+                          jobTypes: service.jobTypes,
                           onTap: () {
                             Navigator.push(context, MaterialPageRoute(
                               builder: (_) => PostDetailsScreen(serviceId: service.id),

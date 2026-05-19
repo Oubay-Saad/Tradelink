@@ -9,19 +9,21 @@ class AuthProvider with ChangeNotifier {
   
   User? _currentUser;
   bool _isLoading = false;
+  bool _isBooting = true;
   String? _error;
 
   User? get currentUser => _currentUser;
   bool get isLoading => _isLoading;
+  bool get isBooting => _isBooting;
   String? get error => _error;
   bool get isAuthenticated => _apiService.token != null;
 
   Future<void> init() async {
-    _isLoading = true;
+    _isBooting = true;
     notifyListeners();
     await _apiService.init();
     _currentUser = _apiService.currentUser;
-    _isLoading = false;
+    _isBooting = false;
     notifyListeners();
   }
 
@@ -33,7 +35,11 @@ class AuthProvider with ChangeNotifier {
       _setLoading(false);
       return true;
     } catch (e) {
-      _setError(e.toString());
+      String errorMsg = e.toString();
+      if (e is DioException) {
+        errorMsg = e.response?.data?['error'] ?? e.message ?? e.toString();
+      }
+      _setError(errorMsg);
       return false;
     }
   }
@@ -63,7 +69,11 @@ class AuthProvider with ChangeNotifier {
       _setLoading(false);
       return true;
     } catch (e) {
-      _setError(e.toString());
+      String errorMsg = e.toString();
+      if (e is DioException) {
+        errorMsg = e.response?.data?['error'] ?? e.message ?? e.toString();
+      }
+      _setError(errorMsg);
       return false;
     }
   }
@@ -115,7 +125,11 @@ class AuthProvider with ChangeNotifier {
       _setLoading(false);
       return true;
     } catch (e) {
-      _setError(e.toString());
+      String errorMsg = e.toString();
+      if (e is DioException) {
+        errorMsg = e.response?.data?['error'] ?? e.message ?? e.toString();
+      }
+      _setError(errorMsg);
       return false;
     }
   }

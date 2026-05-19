@@ -45,7 +45,7 @@ class TradeLinkApp extends StatelessWidget {
       },
       home: Consumer<AuthProvider>(
         builder: (context, auth, _) {
-          if (auth.isLoading) {
+          if (auth.isBooting) {
             return const SplashScreen();
           }
           return auth.isAuthenticated ? const MainLayout() : const LoginScreen();

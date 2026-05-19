@@ -154,15 +154,27 @@ class ApiService {
     await _dio.delete('/posts/$id');
   }
 
+  Future<Post> updatePost(String id, FormData data) async {
+    final res = await _dio.patch('/posts/$id', data: data);
+    return Post.fromJson(res.data['post']);
+  }
+
+  Future<Post> deletePostImage(String id, int index) async {
+    final res = await _dio.delete('/posts/$id/images/$index');
+    return Post.fromJson(res.data['post']);
+  }
+
   // --- Services ---
   Future<ServiceItem> createService(FormData data) async {
     final res = await _dio.post('/services', data: data);
     return ServiceItem.fromJson(res.data['service']);
   }
 
-  Future<List<ServiceItem>> getServices({String? jobType}) async {
+  Future<List<ServiceItem>> getServices({String? jobTypes, String? location, String? timeUploaded}) async {
     final res = await _dio.get('/services', queryParameters: {
-      if (jobType != null && jobType.isNotEmpty) 'jobType': jobType,
+      if (jobTypes != null && jobTypes.isNotEmpty) 'jobTypes': jobTypes,
+      if (location != null && location.isNotEmpty) 'location': location,
+      if (timeUploaded != null && timeUploaded.isNotEmpty) 'timeUploaded': timeUploaded,
     });
     return (res.data['services'] as List).map((e) => ServiceItem.fromJson(e)).toList();
   }

@@ -40,6 +40,12 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
     _fetchDetails();
   }
 
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
   void _fetchDetails() async {
     try {
       final svc = await ApiService().getService(widget.serviceId);
@@ -145,7 +151,7 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                   ),
                   child: Column(
                     children: [
-                      Text('My Proposed Price: \$${_deletedRequestData['estimatedPrice']}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      Text('My Proposed Price: ${_deletedRequestData['estimatedPrice']} DA', style: const TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
                       Text('Message: ${_deletedRequestData['message']}', style: const TextStyle(fontStyle: FontStyle.italic)),
                     ],
@@ -227,10 +233,58 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(color: AppTheme.primary.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
-                        child: Text('\$${_service!.budget}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.primary)),
+                        child: Text('${_service!.budget} DA', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.primary)),
                       ),
                     ],
                   ),
+                  if ((_service!.location != null && _service!.location!.isNotEmpty) || _service!.jobTypes.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        if (_service!.location != null && _service!.location!.isNotEmpty) ...[
+                          const Icon(Icons.location_on_outlined, size: 16, color: AppTheme.primary),
+                          const SizedBox(width: 4),
+                          Text(
+                            _service!.location!,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: AppTheme.textSecondary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          if (_service!.jobTypes.isNotEmpty) const SizedBox(width: 16),
+                        ],
+                        if (_service!.jobTypes.isNotEmpty)
+                          Expanded(
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: _service!.jobTypes.map((jt) {
+                                  final label = jt.substring(0, 1).toUpperCase() + jt.substring(1);
+                                  return Container(
+                                    margin: const EdgeInsets.only(right: 8),
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.primary.withOpacity(0.06),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: AppTheme.primary.withOpacity(0.12)),
+                                    ),
+                                    child: Text(
+                                      label,
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppTheme.primary,
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   InkWell(
                     onTap: () {
@@ -305,8 +359,42 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                     ),
                   ),
                   if (_service!.images.length > 1) ...[
-                    Positioned(left: 8, child: Icon(Icons.chevron_left, color: Colors.white.withValues(alpha: 0.5), size: 30)),
-                    Positioned(right: 8, child: Icon(Icons.chevron_right, color: Colors.white.withValues(alpha: 0.5), size: 30)),
+                    Positioned(
+                      left: 12,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.4),
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: const Icon(Icons.chevron_left_rounded, color: Colors.white, size: 28),
+                          onPressed: () {
+                            _pageController.previousPage(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeInOut,
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      right: 12,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.4),
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: const Icon(Icons.chevron_right_rounded, color: Colors.white, size: 28),
+                          onPressed: () {
+                            _pageController.nextPage(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeInOut,
+                            );
+                          },
+                        ),
+                      ),
+                    ),
                     Positioned(
                       bottom: 12,
                       child: Container(
@@ -365,7 +453,7 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text('My Price: \$${myRequest['estimatedPrice']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.primary)),
+                                      Text('My Price: ${myRequest['estimatedPrice']} DA', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.primary)),
                                       Row(
                                         children: [
                                           IconButton(
@@ -437,7 +525,7 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                                       Row(
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
-                                          Text('Estimated: \$${req['estimatedPrice']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                                          Text('Estimated: ${req['estimatedPrice']} DA', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                                           Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                             decoration: BoxDecoration(
@@ -738,7 +826,7 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
             children: [
               TextField(
                 controller: priceCtrl,
-                decoration: const InputDecoration(labelText: 'Estimated Price (\$)', border: OutlineInputBorder()),
+                decoration: const InputDecoration(labelText: 'Estimated Price (DA)', border: OutlineInputBorder()),
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
               ),
