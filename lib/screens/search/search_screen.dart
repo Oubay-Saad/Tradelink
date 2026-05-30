@@ -20,7 +20,7 @@ class _SearchScreenState extends State<SearchScreen> {
   List<User> _results = [];
   bool _isLoading = false;
   
-  // Filters
+
   String _selectedRole = 'All';
   String _selectedLocation = '';
   String _selectedJobType = 'All';
@@ -113,7 +113,7 @@ class _SearchScreenState extends State<SearchScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Handle bar
+
                 Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppTheme.divider, borderRadius: BorderRadius.circular(2)))),
                 const SizedBox(height: 20),
                 Row(
@@ -130,7 +130,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Role
+
                 const Text('Role', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppTheme.textPrimary)),
                 const SizedBox(height: 8),
                 SegmentedButton<String>(
@@ -151,7 +151,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Location (wilaya dropdown)
+
                 const Text('Location', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppTheme.textPrimary)),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
@@ -172,7 +172,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
                 const SizedBox(height: 20),
                 
-                // Job Type
+
                 const Text('Profession', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppTheme.textPrimary)),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
@@ -186,7 +186,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
                 const SizedBox(height: 20),
                 
-                // Experience
+
                 Row(
                   children: [
                     const Text('Min Experience', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppTheme.textPrimary)),
@@ -245,7 +245,7 @@ class _SearchScreenState extends State<SearchScreen> {
       appBar: AppBar(title: const Text('Search')),
       body: Column(
         children: [
-          // ── Search Bar ──
+          // Search bar
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
             child: Row(
@@ -294,7 +294,7 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
           ),
 
-          // Active filter chips
+
           if (_hasActiveFilters)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -313,7 +313,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
           const SizedBox(height: 8),
 
-          // ── Results ──
+          // Results
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())

@@ -214,7 +214,7 @@ class _EditServiceScreenState extends State<EditServiceScreen> {
         context.read<DataProvider>().fetchServices();
         context.read<DataProvider>().fetchMyServices();
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Service updated successfully!')));
-        Navigator.pop(context, true); // return true to indicate success
+        Navigator.pop(context, true);
       }
     } catch (e) {
       String errorMsg = e.toString();
@@ -234,7 +234,7 @@ class _EditServiceScreenState extends State<EditServiceScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ── Images Section ──
+            // Images section
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -350,7 +350,7 @@ class _EditServiceScreenState extends State<EditServiceScreen> {
             ),
             const SizedBox(height: 16),
 
-            // ── Details Section ──
+            // Details section
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(

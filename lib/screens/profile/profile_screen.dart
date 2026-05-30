@@ -20,7 +20,7 @@ class ProfileScreen extends StatelessWidget {
           : SingleChildScrollView(
               child: Column(
                 children: [
-                  // ── Header ──
+                  // Header
                   Container(
                     width: double.infinity,
                     decoration: const BoxDecoration(
@@ -82,7 +82,7 @@ class ProfileScreen extends StatelessWidget {
                     ),
                   ),
 
-                  // ── Stats Row (for tradesman) ──
+                  // Stats row for tradesman
                   if (user.role == 'tradesman' && user.tradesmanInfo != null)
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
@@ -105,7 +105,7 @@ class ProfileScreen extends StatelessWidget {
                       ),
                     ),
 
-                  // ── Bio ──
+                  // Bio
                   if (user.bio != null && user.bio!.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -130,7 +130,7 @@ class ProfileScreen extends StatelessWidget {
 
                   const SizedBox(height: 16),
 
-                  // ── Info & Location ──
+                  // Info and location
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Container(
@@ -153,7 +153,7 @@ class ProfileScreen extends StatelessWidget {
                     ),
                   ),
 
-                  // ── Job Types ──
+                  // Job types
                   if (user.role == 'tradesman' && user.tradesmanInfo != null && user.tradesmanInfo!.jobTypes.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
@@ -190,7 +190,7 @@ class ProfileScreen extends StatelessWidget {
                       ),
                     ),
 
-                  // ── Skills ──
+                  // Skills
                   if (user.role == 'tradesman' && user.tradesmanInfo != null && user.tradesmanInfo!.skills.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
@@ -226,7 +226,7 @@ class ProfileScreen extends StatelessWidget {
 
                   const SizedBox(height: 20),
 
-                  // ── Action Buttons ──
+                  // Action buttons
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Column(

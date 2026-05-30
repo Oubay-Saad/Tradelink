@@ -107,7 +107,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
                                       )
                                     : const Icon(Icons.image_not_supported_rounded, color: AppTheme.textMuted),
                               ),
-                              // Title overlay
+
                               Positioned(
                                 bottom: 0, left: 0, right: 0,
                                 child: Container(

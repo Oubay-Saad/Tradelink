@@ -208,7 +208,7 @@ class _BrowseServicesScreenState extends State<BrowseServicesScreen> with Single
                     ),
                     const Divider(height: 24),
 
-                    // Job Types Segment
+
                     const Text('Job Types', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
                     const SizedBox(height: 10),
                     Column(
@@ -267,7 +267,7 @@ class _BrowseServicesScreenState extends State<BrowseServicesScreen> with Single
 
                     const SizedBox(height: 20),
 
-                    // Location Filter Segment
+                    // Location filter
                     const Text('Location (Wilaya)', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
                     const SizedBox(height: 10),
                     DropdownButtonFormField<String>(
@@ -295,7 +295,7 @@ class _BrowseServicesScreenState extends State<BrowseServicesScreen> with Single
 
                     const SizedBox(height: 20),
 
-                    // Time Uploaded Segment
+                    // Time uploaded
                     const Text('Time Uploaded', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
                     const SizedBox(height: 10),
                     Wrap(
@@ -378,7 +378,7 @@ class _BrowseServicesScreenState extends State<BrowseServicesScreen> with Single
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
-                      // Job types active chip
+
                       if (_jobTypesFilter != 'all')
                         _buildFilterActiveChip(
                           _jobTypesFilter == 'mine' 
@@ -393,7 +393,7 @@ class _BrowseServicesScreenState extends State<BrowseServicesScreen> with Single
                           },
                         ),
                       
-                      // Location active chip
+
                       if (_locationFilter != null)
                         _buildFilterActiveChip(
                           _locationFilter!,
@@ -405,7 +405,7 @@ class _BrowseServicesScreenState extends State<BrowseServicesScreen> with Single
                           },
                         ),
                       
-                      // Time active chip
+
                       if (_timeFilter != 'all')
                         _buildFilterActiveChip(
                           _timeFilter == 'last_24h' 
@@ -513,7 +513,7 @@ class _BrowseServicesScreenState extends State<BrowseServicesScreen> with Single
       body: TabBarView(
         controller: _tabController,
         children: [
-          // ── Available Tab ──
+          // Available tab
           dataProvider.isLoading
               ? const Center(child: CircularProgressIndicator())
               : Column(
@@ -564,7 +564,7 @@ class _BrowseServicesScreenState extends State<BrowseServicesScreen> with Single
                   ],
                 ),
 
-          // ── My Applications Tab ──
+          // My applications tab
           dataProvider.isRequestsLoading
               ? const Center(child: CircularProgressIndicator())
               : RefreshIndicator(

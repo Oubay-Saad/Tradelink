@@ -95,7 +95,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── WELCOME HEADER ──
+                // Welcome header
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
@@ -145,7 +145,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const SizedBox(height: 24),
 
-                // ── TOP TRADESMEN ──
+                // Top tradesmen
                 _buildSectionHeader(Icons.emoji_events_rounded, 'Top Tradesmen', AppTheme.star, trailing: 'Top 5'),
                 const SizedBox(height: 12),
 
@@ -172,7 +172,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const SizedBox(height: 28),
 
-                // ── NEARBY TRADESMEN ──
+                // Nearby tradesmen
                 _buildSectionHeader(Icons.near_me_rounded, 'In ${user?.location ?? "Your Area"}', AppTheme.accent),
                 const SizedBox(height: 12),
 
@@ -193,7 +193,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const SizedBox(height: 28),
 
-                // ── RECENT POSTS ──
+                // Recent posts
                 _buildSectionHeader(Icons.auto_awesome_rounded, 'Recent Posts', AppTheme.accent),
                 const SizedBox(height: 12),
 
@@ -219,7 +219,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ── HELPER WIDGETS ──
+  // Helper widgets
 
   Widget _buildSectionHeader(IconData icon, String title, Color iconColor, {String? trailing}) {
     return Padding(

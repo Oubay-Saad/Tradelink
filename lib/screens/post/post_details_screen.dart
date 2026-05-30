@@ -51,7 +51,7 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
       final svc = await ApiService().getService(widget.serviceId);
       final reqs = await ApiService().getRequests(widget.serviceId);
 
-      // Pre-decode images to prevent lag
+      // Pre decode images to prevent lag
       if (svc.images.isNotEmpty) {
         for (int i = 0; i < svc.images.length; i++) {
           final imageUrl = svc.images[i];

@@ -48,7 +48,7 @@ class ApiService {
     }
   }
 
-  // --- Auth ---
+  // Auth
   Future<Map<String, dynamic>> login(String identifier, String password) async {
     final res = await _dio.post('/auth/login', data: {'identifier': identifier, 'password': password});
     token = res.data['token'];
@@ -118,7 +118,7 @@ class ApiService {
     await prefs.remove('token');
   }
 
-  // --- Users ---
+  // Users
   Future<List<User>> searchUsers({String? name, String? role, String? jobType}) async {
     final res = await _dio.get('/users/search', queryParameters: {
       if (name != null && name.isNotEmpty) 'name': name,
@@ -139,7 +139,7 @@ class ApiService {
     return currentUser!;
   }
 
-  // --- Posts ---
+  // Posts
   Future<Post> createPost(FormData data) async {
     final res = await _dio.post('/posts', data: data);
     return Post.fromJson(res.data['post']);
@@ -164,7 +164,7 @@ class ApiService {
     return Post.fromJson(res.data['post']);
   }
 
-  // --- Services ---
+  // Services
   Future<ServiceItem> createService(FormData data) async {
     final res = await _dio.post('/services', data: data);
     return ServiceItem.fromJson(res.data['service']);

@@ -70,7 +70,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               SliverToBoxAdapter(
                 child: Column(
                   children: [
-                    // ── Header ──
+                    // Header
                     Container(
                       width: double.infinity,
                       decoration: const BoxDecoration(
@@ -145,7 +145,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       ),
                     ),
 
-                    // ── Tab Bar ──
+                    // Tab bar
                     if (isTradesman)
                       Container(
                         margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
@@ -186,7 +186,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Contact Info Card
+          // Contact info card
           _buildCard(
             'Contact',
             Icons.contacts_rounded,
@@ -456,7 +456,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
-          // Summary Card
+          // Summary card
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
