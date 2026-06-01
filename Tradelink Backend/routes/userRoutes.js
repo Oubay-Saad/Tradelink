@@ -110,8 +110,9 @@ router.get("/users/nearby", auth, async (req, res) => {
 // Update current user profile
 router.patch("/users/me", auth, upload.single("profilePic"), async (req, res) => {
     try {
-        const { bio, location, skills, experience } = req.body
+        const { bio, location, skills, experience, name, jobTypes } = req.body
         const updatedData = {}
+        if (name !== undefined) updatedData.name = name
         if (bio !== undefined) updatedData.bio = bio
         if (location !== undefined) updatedData.location = location
 
@@ -128,6 +129,7 @@ router.patch("/users/me", auth, upload.single("profilePic"), async (req, res) =>
         if (req.user.role === "tradesman") {
             if (skills !== undefined) updatedData["tradesmanInfo.skills"] = skills
             if (experience !== undefined) updatedData["tradesmanInfo.experience"] = experience
+            if (jobTypes !== undefined) updatedData["tradesmanInfo.jobTypes"] = jobTypes
         }
 
         const updated = await User.findByIdAndUpdate(
@@ -148,18 +150,18 @@ router.get("/users/:id", auth, async (req, res) => {
     try {
         const user = await User.findById(req.params.id).select("-password")
 
-        if(!user){
+        if (!user) {
             return res.status(404).json({ error: "User not found" })
         }
 
         const response = { user }
 
-        if(user.role === "tradesman"){
+        if (user.role === "tradesman") {
             response.posts = await Post.find({ postedBy: req.params.id })
         }
 
-        if(user.role === "customer"){
-            response.services = await Service.find({createdBy: req.params.id})
+        if (user.role === "customer") {
+            response.services = await Service.find({ createdBy: req.params.id })
         }
 
         res.status(200).json(response)

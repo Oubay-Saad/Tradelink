@@ -106,7 +106,12 @@ class _AllPostsScreenState extends State<AllPostsScreen> {
         border: Border.all(color: AppTheme.divider.withOpacity(0.5)),
       ),
       child: InkWell(
-        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PortfolioPostDetailsScreen(postId: post.id))),
+        onTap: () async {
+          final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => PortfolioPostDetailsScreen(postId: post.id)));
+          if (result == true) {
+            context.read<DataProvider>().fetchAllPosts();
+          }
+        },
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

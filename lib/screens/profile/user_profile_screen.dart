@@ -333,7 +333,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       itemBuilder: (context, index) {
         final post = _posts[index];
         return GestureDetector(
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PortfolioPostDetailsScreen(postId: post.id))),
+          onTap: () async {
+            final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => PortfolioPostDetailsScreen(postId: post.id)));
+            if (result == true) {
+              _fetchProfile();
+            }
+          },
           child: Container(
             clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
@@ -545,7 +550,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 ),
               ),
               if (isOwner) ...[
-                IconButton(icon: const Icon(Icons.edit_rounded, size: 16, color: AppTheme.textMuted), onPressed: () => _showReviewDialog(reviewId: r['_id'], initialRating: r['rating'], initialComment: r['comment'])),
+                IconButton(icon: const Icon(Icons.edit_rounded, size: 16, color: AppTheme.textMuted), onPressed: () => _showReviewDialog(reviewId: r['_id'], initialRating: (r['rating'] as num?)?.toInt(), initialComment: r['comment'])),
                 IconButton(icon: const Icon(Icons.delete_outline_rounded, size: 16, color: AppTheme.error), onPressed: () => _confirmDeleteReview(r['_id'])),
               ],
             ],

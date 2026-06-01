@@ -37,6 +37,7 @@ router.post("/services/:serviceId/requests", auth, isTradesman, async (req, res)
 router.get("/services/:serviceId/requests", auth, async (req, res) => {
     try {
         const requests = await Request.find({ service: req.params.serviceId })
+            .populate("requestedBy")
         res.status(200).json({ requests: requests })
     } catch (err) {
         res.status(500).json({ error: "Server error" })
